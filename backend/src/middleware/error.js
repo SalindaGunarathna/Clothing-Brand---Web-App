@@ -8,6 +8,8 @@ class ApiError extends Error {
   }
 }
 
+const logger = require('../config/logger');
+
 const notFound = (req, res, next) => {
   next(new ApiError(404, `Not found - ${req.originalUrl}`));
 };
@@ -28,6 +30,11 @@ const errorHandler = (err, req, res, next) => {
     details = Object.values(err.errors).map((e) => e.message);
   }
 
+  if (err.name === 'CastError') {
+    status = 400;
+    message = 'Invalid identifier';
+  }
+
   if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
     status = 401;
     message = 'Invalid or expired token';
@@ -38,6 +45,24 @@ const errorHandler = (err, req, res, next) => {
   if (process.env.NODE_ENV !== 'production' && err.stack) {
     response.stack = err.stack;
   }
+
+  const errorLog = {
+    status,
+    message,
+    path: req.originalUrl,
+    method: req.method
+  };
+
+  if (process.env.LOG_LEVEL === 'debug' && err?.stack) {
+    errorLog.stack = err.stack;
+  }
+
+  res.locals.errorMessage = message;
+  res.locals.errorStatus = status;
+
+  const level = status >= 500 ? 'error' : 'warn';
+  const levelLabel = level.toUpperCase();
+  logger[level](errorLog, `${levelLabel} Request error`);
 
   res.status(status).json(response);
 };

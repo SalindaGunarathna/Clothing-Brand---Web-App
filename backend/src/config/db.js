@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const logger = require('./logger');
 
 const connectDB = async () => {
   const uri = process.env.MONGO_URI;
@@ -12,7 +13,7 @@ const connectDB = async () => {
     autoIndex: process.env.NODE_ENV !== 'production'
   });
 
-  console.log('MongoDB connected');
+  logger.info('INFO MongoDB connected');
 };
 
 module.exports = connectDB;

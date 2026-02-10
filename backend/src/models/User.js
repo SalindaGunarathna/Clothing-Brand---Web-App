@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+const { USER_ROLES } = require('../config/constants');
 
 const userSchema = new mongoose.Schema(
   {
@@ -26,8 +27,16 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
-      default: 'user'
+      enum: Object.values(USER_ROLES),
+      default: USER_ROLES.ADMIN
+    },
+    resetPasswordTokenHash: {
+      type: String,
+      select: false
+    },
+    resetPasswordExpiresAt: {
+      type: Date,
+      select: false
     }
   },
   { timestamps: true }
