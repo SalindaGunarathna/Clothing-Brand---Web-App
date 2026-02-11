@@ -1,6 +1,7 @@
 const Product = require('../models/Product');
 const asyncHandler = require('../middleware/asyncHandler');
 const { ApiError } = require('../middleware/error');
+const logger = require('../config/logger');
 
 const parseNumber = (value) => {
   if (value === undefined || value === null || value === '') return undefined;
@@ -8,6 +9,7 @@ const parseNumber = (value) => {
   return Number.isFinite(num) ? num : undefined;
 };
 
+// Normalize stock map keys to uppercase size labels.
 const normalizeStockBySize = (stockBySize) => {
   if (!stockBySize || typeof stockBySize !== 'object') return undefined;
   const normalized = {};
@@ -17,6 +19,7 @@ const normalizeStockBySize = (stockBySize) => {
   return normalized;
 };
 
+// Public product listing with search, filters, sorting, and pagination.
 const listProducts = asyncHandler(async (req, res) => {
   const {
     search,
@@ -31,6 +34,7 @@ const listProducts = asyncHandler(async (req, res) => {
 
   const filter = { isActive: true };
 
+  // Text search relies on the Product text index and enables relevance sorting.
   if (search) {
     filter.$text = { $search: String(search) };
   }
@@ -66,6 +70,7 @@ const listProducts = asyncHandler(async (req, res) => {
 
   let sortBy = sortMap[sort];
   if (!sortBy && search) {
+    // When searching, prioritize text relevance then newest items.
     sortBy = { score: { $meta: 'textScore' }, createdAt: -1 };
   }
   if (!sortBy) sortBy = '-createdAt';
@@ -83,6 +88,21 @@ const listProducts = asyncHandler(async (req, res) => {
     Product.countDocuments(filter)
   ]);
 
+  logger.debug(
+    {
+      hasSearch: Boolean(search),
+      category: category ? String(category).toUpperCase() : undefined,
+      size: size ? String(size).toUpperCase() : undefined,
+      minPrice: min,
+      maxPrice: max,
+      page: pageNum,
+      limit: limitNum,
+      total,
+      returned: products.length
+    },
+    'DEBUG Products listed'
+  );
+
   res.json({
     data: products,
     meta: {
@@ -94,6 +114,7 @@ const listProducts = asyncHandler(async (req, res) => {
   });
 });
 
+// Public product detail endpoint.
 const getProductById = asyncHandler(async (req, res) => {
   const product = await Product.findOne({
     _id: req.params.id,
@@ -106,9 +127,12 @@ const getProductById = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Product not found');
   }
 
+  logger.debug({ productId: product._id }, 'DEBUG Product fetched');
+
   res.json({ data: product });
 });
 
+// Admin-only product creation.
 const createProduct = asyncHandler(async (req, res) => {
   const { name, description, price, imageUrl, category, sizes, stockBySize } =
     req.body;
@@ -122,6 +146,15 @@ const createProduct = asyncHandler(async (req, res) => {
     sizes: sizes.map((size) => String(size).toUpperCase()),
     stockBySize: normalizeStockBySize(stockBySize)
   });
+
+  logger.info(
+    {
+      productId: product._id,
+      category: product.category,
+      price: product.price
+    },
+    'INFO Product created'
+  );
 
   res.status(201).json({ data: product });
 });

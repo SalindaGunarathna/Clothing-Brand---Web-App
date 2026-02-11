@@ -9,6 +9,7 @@ const withTransaction = require('../utils/transaction');
 const { getGuestId } = require('../utils/guest');
 const { mergeGuestCartIntoUser } = require('../services/cart.service');
 
+// Short-lived access token used for API authorization.
 const signAccessToken = (userId) => {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error('JWT_SECRET is not set');
@@ -16,6 +17,7 @@ const signAccessToken = (userId) => {
   return jwt.sign({ sub: userId }, secret, { expiresIn });
 };
 
+// Long-lived refresh token used to rotate access tokens.
 const signRefreshToken = (userId, jti) => {
   const secret = process.env.REFRESH_TOKEN_SECRET;
   if (!secret) throw new Error('REFRESH_TOKEN_SECRET is not set');
@@ -84,12 +86,14 @@ const buildAuthResponse = (user, accessToken, refreshToken) => ({
   }
 });
 
+// Register a new user and issue tokens atomically.
 const register = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
   const normalizedEmail = email.trim().toLowerCase();
 
   const { user, accessToken, refreshToken } = await withTransaction(
     async (session) => {
+      // Transaction keeps user creation and refresh token issuance consistent.
       const existingUser = await withSession(
         User.findOne({ email: normalizedEmail }),
         session
@@ -135,6 +139,7 @@ const register = asyncHandler(async (req, res) => {
 });
 
 const login = asyncHandler(async (req, res) => {
+  // Validate credentials and issue new tokens.
   const { email, password } = req.body;
   const normalizedEmail = email.trim().toLowerCase();
 
@@ -167,6 +172,7 @@ const login = asyncHandler(async (req, res) => {
   res.json(buildAuthResponse(user, accessToken, refreshToken));
 });
 
+// Return the authenticated user's profile.
 const me = asyncHandler(async (req, res) => {
   res.json({
     user: {
@@ -178,6 +184,7 @@ const me = asyncHandler(async (req, res) => {
   });
 });
 
+// Rotate refresh token and issue a new access token.
 const refresh = asyncHandler(async (req, res) => {
   const { refreshToken } = req.body;
   if (!refreshToken) {
@@ -199,12 +206,14 @@ const refresh = asyncHandler(async (req, res) => {
 
   const tokenHash = hashToken(refreshToken);
   const result = await withTransaction(async (session) => {
+    // Transaction ensures we never issue a new token without revoking the old.
     const storedToken = await withSession(
       RefreshToken.findOne({ tokenHash }),
       session
     );
 
     if (!storedToken) {
+      // If the token is missing, revoke any active tokens for safety.
       await withSession(
         RefreshToken.updateMany(
           { user: payload.sub, revokedAt: null },
@@ -260,6 +269,7 @@ const refresh = asyncHandler(async (req, res) => {
   res.json(buildAuthResponse(result.user, result.accessToken, result.newRefreshToken));
 });
 
+// Revoke a refresh token to end the session.
 const logout = asyncHandler(async (req, res) => {
   const { refreshToken } = req.body;
   if (!refreshToken) {
@@ -289,6 +299,7 @@ const logout = asyncHandler(async (req, res) => {
   res.json({ message: 'Logged out' });
 });
 
+// Generate a password reset token (email delivery handled elsewhere).
 const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
   const normalizedEmail = email.trim().toLowerCase();
@@ -321,11 +332,13 @@ const forgotPassword = asyncHandler(async (req, res) => {
   });
 });
 
+// Reset password and revoke active refresh tokens atomically.
 const resetPassword = asyncHandler(async (req, res) => {
   const { token, newPassword } = req.body;
   const resetTokenHash = hashToken(token);
 
   const result = await withTransaction(async (session) => {
+    // Transaction keeps password update and token revocation consistent.
     const user = await withSession(
       User.findOne({
         resetPasswordTokenHash: resetTokenHash,

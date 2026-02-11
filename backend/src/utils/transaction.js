@@ -15,6 +15,7 @@ const withTransaction = async (fn) => {
     return fn(null);
   }
 
+  // Transactions require a replica set; fallback gracefully if unsupported.
   const session = await mongoose.connection.startSession();
   try {
     let result;

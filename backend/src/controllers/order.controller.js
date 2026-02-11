@@ -13,6 +13,7 @@ const logger = require('../config/logger');
 
 const withSession = (query, session) => (session ? query.session(session) : query);
 
+// Safely read stock for a given size regardless of Map/plain object storage.
 const getAvailableStock = (product, size) => {
   if (!product?.stockBySize) return undefined;
   if (typeof product.stockBySize.get === 'function') {
@@ -21,11 +22,13 @@ const getAvailableStock = (product, size) => {
   return product.stockBySize[size];
 };
 
+// Create an order from the user's cart and update stock in a single transaction.
 const checkout = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const itemIds = Array.isArray(req.body?.itemIds) ? req.body.itemIds : null;
 
   const result = await withTransaction(async (session) => {
+    // Transaction keeps stock updates, order creation, and cart updates consistent.
     const cart = await withSession(Cart.findOne({ user: userId }), session);
     if (!cart || cart.items.length === 0) {
       throw new ApiError(400, 'Cart is empty');
@@ -33,6 +36,7 @@ const checkout = asyncHandler(async (req, res) => {
 
     let selectedItems = cart.items;
     if (itemIds && itemIds.length > 0) {
+      // Allow partial checkout by selecting specific cart item ids.
       const itemIdSet = new Set(itemIds.map((id) => String(id)));
       selectedItems = cart.items.filter((item) =>
         itemIdSet.has(String(item._id))
@@ -56,7 +60,7 @@ const checkout = asyncHandler(async (req, res) => {
 
     let total = 0;
     const orderItems = [];
-    const updatedProducts = new Set();
+    const updatedProducts = new Set(); // avoid saving the same product multiple times
 
     for (const item of selectedItems) {
       const product = productMap.get(item.product.toString());
@@ -84,6 +88,7 @@ const checkout = asyncHandler(async (req, res) => {
 
       total += product.price * item.quantity;
 
+      // Only decrement stock when per-size stock is tracked.
       if (available !== undefined) {
         const newQty = available - item.quantity;
         product.stockBySize.set(item.size, newQty);
@@ -108,6 +113,7 @@ const checkout = asyncHandler(async (req, res) => {
 
     const [order] = await Order.create([orderDoc], { session });
 
+    // Remove only the purchased items from the cart.
     if (selectedItems.length === cart.items.length) {
       cart.items = [];
     } else {
@@ -125,6 +131,16 @@ const checkout = asyncHandler(async (req, res) => {
     return { order };
   });
 
+  logger.info(
+    {
+      orderId: result.order._id,
+      userId: req.user.id,
+      itemCount: result.order.items.length,
+      total: result.order.total
+    },
+    'INFO Order placed'
+  );
+
   try {
     await sendOrderConfirmation({
       to: req.user.email,
@@ -138,11 +154,19 @@ const checkout = asyncHandler(async (req, res) => {
   res.status(201).json({ data: result.order });
 });
 
+// List orders for the authenticated user.
 const listMyOrders = asyncHandler(async (req, res) => {
   const orders = await Order.find({ user: req.user.id }).sort('-orderDate').lean();
+
+  logger.debug(
+    { userId: req.user.id, count: orders.length },
+    'DEBUG User orders listed'
+  );
+
   res.json({ data: orders });
 });
 
+// Admin: list all orders with filters and pagination.
 const listAllOrders = asyncHandler(async (req, res) => {
   const {
     status,
@@ -176,6 +200,18 @@ const listAllOrders = asyncHandler(async (req, res) => {
     Order.countDocuments(filter)
   ]);
 
+  logger.debug(
+    {
+      adminId: req.user.id,
+      status: filter.status,
+      page: pageNum,
+      limit: limitNum,
+      total,
+      returned: orders.length
+    },
+    'DEBUG All orders listed'
+  );
+
   res.json({
     data: orders,
     meta: {
@@ -187,6 +223,7 @@ const listAllOrders = asyncHandler(async (req, res) => {
   });
 });
 
+// Get a single order owned by the authenticated user.
 const getOrderById = asyncHandler(async (req, res) => {
   const order = await Order.findOne({
     _id: req.params.id,
@@ -197,9 +234,15 @@ const getOrderById = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Order not found');
   }
 
+  logger.debug(
+    { userId: req.user.id, orderId: order._id },
+    'DEBUG Order fetched'
+  );
+
   res.json({ data: order });
 });
 
+// Admin: update order status and trigger notifications.
 const updateOrderStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
 
@@ -215,7 +258,18 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   order.status = status.trim().toUpperCase();
   await order.save();
 
+  logger.info(
+    {
+      adminId: req.user.id,
+      orderId: order._id,
+      previousStatus,
+      status: order.status
+    },
+    'INFO Order status updated'
+  );
+
   if (previousStatus !== order.status) {
+    // Only notify external systems when the status actually changes.
     if (order.user?.email) {
       try {
         await sendOrderStatusUpdate({

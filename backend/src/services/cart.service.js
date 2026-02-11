@@ -1,6 +1,7 @@
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 const withTransaction = require('../utils/transaction');
+const logger = require('../config/logger');
 
 const withSession = (query, session) => (session ? query.session(session) : query);
 
@@ -12,10 +13,12 @@ const getAvailableStock = (product, size) => {
   return product.stockBySize[size];
 };
 
+// Merge guest cart into user cart atomically to avoid partial merges.
 const mergeGuestCartIntoUser = async ({ userId, guestId }) => {
   if (!userId || !guestId) return;
 
   await withTransaction(async (session) => {
+    // Transaction ensures cart merge + guest cart deletion happen together.
     const guestCart = await withSession(Cart.findOne({ guestId }), session);
     if (!guestCart || guestCart.items.length === 0) return;
 
@@ -39,6 +42,7 @@ const mergeGuestCartIntoUser = async ({ userId, guestId }) => {
       if (!product) continue;
       if (!product.sizes.includes(item.size)) continue;
 
+      // Cap quantities to available stock and max 99 per item.
       let qty = Math.min(item.quantity, 99);
       const available = getAvailableStock(product, item.size);
       if (available !== undefined) {
@@ -98,6 +102,16 @@ const mergeGuestCartIntoUser = async ({ userId, guestId }) => {
       await userCart.save();
       await guestCart.deleteOne();
     }
+
+    logger.info(
+      {
+        userId,
+        guestId,
+        mergedItems: mergedItems.length,
+        cartItems: userCart.items.length
+      },
+      'INFO Guest cart merged'
+    );
   });
 };
 
