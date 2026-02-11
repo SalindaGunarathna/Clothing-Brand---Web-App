@@ -10,7 +10,7 @@ import { AppProvider } from './lib/store';
 import { Provider } from 'react-redux';
 import { store } from './state/store';
 import { AppShell } from './components/layout/AppShell';
-import { AdminShell } from './components/layout/AdminShell';
+import { AdminGate } from './components/routes/AdminGate';
 import { ToastContainer } from './components/ui/Toast';
 // Customer Pages
 import { HomePage } from './pages/HomePage';
@@ -35,11 +35,6 @@ const CustomerLayout = () =>
 <AppShell>
     <Outlet />
   </AppShell>;
-
-const AdminLayout = () =>
-<AdminShell>
-    <Outlet />
-  </AdminShell>;
 
 export function App() {
   return (
@@ -68,7 +63,7 @@ export function App() {
             </Route>
 
             {/* Admin Routes */}
-            <Route path="/admin" element={<AdminLayout />}>
+            <Route path="/admin" element={<AdminGate />}>
               <Route index element={<AdminDashboardPage />} />
               <Route path="orders" element={<AdminOrdersPage />} />
               <Route path="products" element={<AdminProductsPage />} />

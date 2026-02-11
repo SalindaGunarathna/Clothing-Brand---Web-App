@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Category } from './types';
+import { Category, OrderStatus } from './types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -39,4 +39,27 @@ export function generateOrderId(): string {
 
 export function formatCategory(category: Category): string {
   return category.charAt(0) + category.slice(1).toLowerCase();
+}
+
+export function formatStatus(status: string): string {
+  if (!status) return '';
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}
+
+export function getOrderStatusVariant(
+  status: OrderStatus
+): 'default' | 'accent' | 'sage' | 'error' | 'success' {
+  switch (status) {
+    case 'DELIVERED':
+      return 'success';
+    case 'CANCELLED':
+      return 'error';
+    case 'PROCESSING':
+      return 'accent';
+    case 'SHIPPED':
+      return 'sage';
+    case 'PLACED':
+    default:
+      return 'default';
+  }
 }
