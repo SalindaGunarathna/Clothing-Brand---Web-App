@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCart, useToast } from '../lib/store';
+import { useCart, useToast, useAuth } from '../lib/store';
 import { formatPrice, generateOrderId } from '../lib/utils';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { CheckCircle } from 'lucide-react';
 export function CheckoutPage() {
   const { items, cartTotal, clearCart, isCartLoading } = useCart();
+  const { isAuthenticated, isAuthLoading } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -41,12 +42,21 @@ export function CheckoutPage() {
       setIsLoading(false);
     }, 2000);
   };
-  if (isCartLoading) {
+  useEffect(() => {
+    if (!isAuthLoading && !isCartLoading && !isAuthenticated) {
+      navigate('/login?redirect=/checkout', { replace: true });
+    }
+  }, [isAuthLoading, isCartLoading, isAuthenticated, navigate]);
+
+  if (isAuthLoading || isCartLoading) {
     return (
       <div className="container mx-auto px-4 py-12 animate-fade-in">
         <p className="text-center text-text-secondary">Loading cart...</p>
       </div>);
 
+  }
+  if (!isAuthenticated) {
+    return null;
   }
   if (items.length === 0) {
     navigate('/cart');

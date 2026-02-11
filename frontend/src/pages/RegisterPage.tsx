@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/store';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -7,18 +7,24 @@ export function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { register } = useAuth();
+  const [rememberMe, setRememberMe] = useState(true);
+  const [formError, setFormError] = useState('');
+  const { register, isAuthLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get('redirect') || '/';
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      register(name, email);
-      setIsLoading(false);
-      navigate('/');
-    }, 1000);
+    setFormError('');
+    try {
+      const user = await register(name, email, password, rememberMe);
+      const target = user.role === 'ADMIN' ? '/admin' : redirect;
+      navigate(target, { replace: true });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Registration failed';
+      setFormError(message);
+    }
   };
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4">
@@ -61,8 +67,21 @@ export function RegisterPage() {
             placeholder="••••••••"
             helperText="Must be at least 8 characters" />
 
+          <label className="flex items-center gap-2 text-xs text-text-secondary">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="rounded-sm border-border text-primary focus:ring-accent" />
 
-          <Button type="submit" fullWidth isLoading={isLoading}>
+            Remember me
+          </label>
+
+          {formError &&
+          <p className="text-xs text-error">{formError}</p>
+          }
+
+          <Button type="submit" fullWidth isLoading={isAuthLoading}>
             Create Account
           </Button>
         </form>

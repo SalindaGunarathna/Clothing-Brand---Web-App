@@ -1,5 +1,6 @@
 export type Category = 'MEN' | 'WOMEN' | 'KIDS';
 export type ProductSize = 'S' | 'M' | 'L' | 'XL';
+export type UserRole = 'USER' | 'ADMIN';
 export type OrderStatus =
   | 'PLACED'
   | 'PROCESSING'
@@ -38,6 +39,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  role: UserRole;
 }
 
 export interface OrderItem {

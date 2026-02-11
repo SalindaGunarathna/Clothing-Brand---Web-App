@@ -130,18 +130,22 @@ export function CartPage() {
               <span>{formatPrice(cartTotal * 1.08)}</span>
             </div>
 
+            {isAuthenticated ?
             <Link to="/checkout">
-              <Button fullWidth size="lg">
-                Proceed to Checkout
-              </Button>
-            </Link>
+                <Button fullWidth size="lg">
+                  Proceed to Checkout
+                </Button>
+              </Link> :
+            <Link to="/login?redirect=/checkout">
+                <Button fullWidth size="lg" variant="secondary">
+                  Log In to Checkout
+                </Button>
+              </Link>
+            }
 
             {!isAuthenticated &&
             <p className="text-xs text-center text-text-secondary mt-4">
-                <Link to="/login" className="underline hover:text-text">
-                  Log in
-                </Link>{' '}
-                for faster checkout
+                Log in to place your order and track it later.
               </p>
             }
           </div>

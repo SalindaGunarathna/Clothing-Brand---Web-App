@@ -13,7 +13,7 @@ export function MyOrdersPage() {
         description="Please sign in to view your order history."
         action={{
           label: 'Go to Login',
-          onClick: () => navigate('/login')
+          onClick: () => navigate('/login?redirect=/my-orders')
         }} />
 
     </div>);

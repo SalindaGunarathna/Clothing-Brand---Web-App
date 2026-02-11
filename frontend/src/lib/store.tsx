@@ -6,7 +6,14 @@ import React, {
   ReactNode
 } from 'react';
 import { apiRequest } from './api';
-import { CartItem, ProductSize, User, Toast, ToastType } from './types';
+import {
+  CartItem,
+  ProductSize,
+  User,
+  UserRole,
+  Toast,
+  ToastType
+} from './types';
 // --- Toast Context ---
 interface ToastContextType {
   toasts: Toast[];
@@ -22,10 +29,23 @@ export function useToast() {
 // --- Auth Context ---
 interface AuthContextType {
   user: User | null;
+  token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
-  login: (email: string) => void;
-  logout: () => void;
-  register: (name: string, email: string) => void;
+  isAuthLoading: boolean;
+  authError: string | null;
+  login: (
+    email: string,
+    password: string,
+    rememberMe: boolean
+  ) => Promise<User>;
+  logout: () => Promise<void>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    rememberMe: boolean
+  ) => Promise<User>;
 }
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function useAuth() {
@@ -71,28 +91,11 @@ export function AppProvider({ children }: {children: ReactNode;}) {
   };
   // Auth State
   const [user, setUser] = useState<User | null>(null);
-  const login = (email: string) => {
-    // Mock login
-    setUser({
-      id: 'user-1',
-      name: 'Jane Doe',
-      email
-    });
-    addToast('Welcome back, Jane!', 'success');
-  };
-  const register = (name: string, email: string) => {
-    // Mock register
-    setUser({
-      id: 'user-1',
-      name,
-      email
-    });
-    addToast('Account created successfully!', 'success');
-  };
-  const logout = () => {
-    setUser(null);
-    addToast('Logged out successfully', 'info');
-  };
+  const [token, setToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const AUTH_KEY = 'maison-auth';
   // Cart State
   const [items, setItems] = useState<CartItem[]>([]);
   const [cartTotal, setCartTotal] = useState(0);
@@ -136,6 +139,65 @@ export function AppProvider({ children }: {children: ReactNode;}) {
     guestId?: string;
   };
 
+  type AuthResponse = {
+    token: string;
+    refreshToken: string;
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      role: UserRole;
+    };
+  };
+
+  const clearAuthStorage = () => {
+    localStorage.removeItem(AUTH_KEY);
+    sessionStorage.removeItem(AUTH_KEY);
+  };
+
+  const persistAuth = (
+    auth: AuthResponse,
+    rememberMe: boolean
+  ) => {
+    const storage = rememberMe ? localStorage : sessionStorage;
+    storage.setItem(
+      AUTH_KEY,
+      JSON.stringify({ ...auth, rememberMe })
+    );
+    if (rememberMe) {
+      sessionStorage.removeItem(AUTH_KEY);
+    } else {
+      localStorage.removeItem(AUTH_KEY);
+    }
+  };
+
+  const loadStoredAuth = (): (AuthResponse & { rememberMe: boolean }) | null => {
+    const local = localStorage.getItem(AUTH_KEY);
+    const session = sessionStorage.getItem(AUTH_KEY);
+    const raw = session || local;
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as AuthResponse & { rememberMe: boolean };
+    } catch {
+      return null;
+    }
+  };
+
+  const applyAuth = (auth: AuthResponse, rememberMe: boolean) => {
+    setUser(auth.user);
+    setToken(auth.token);
+    setRefreshToken(auth.refreshToken);
+    persistAuth(auth, rememberMe);
+  };
+
+  const clearAuth = () => {
+    setUser(null);
+    setToken(null);
+    setRefreshToken(null);
+    setAuthError(null);
+    clearAuthStorage();
+  };
+
   const syncCart = (response: CartResponse) => {
     const nextItems = response.data?.items || [];
     setItems(nextItems);
@@ -152,12 +214,19 @@ export function AppProvider({ children }: {children: ReactNode;}) {
     }
   };
 
-  const loadCart = async (id: string) => {
+  const getCartHeaders = () => {
+    if (token) {
+      return { authorization: `Bearer ${token}` };
+    }
+    return buildGuestHeaders(guestId);
+  };
+
+  const loadCart = async (id?: string) => {
     setIsCartLoading(true);
     try {
       const response = await apiRequest<CartResponse>('/api/cart', {
         method: 'GET',
-        headers: buildGuestHeaders(id)
+        headers: id ? buildGuestHeaders(id) : getCartHeaders()
       });
       syncCart(response);
     } catch (err) {
@@ -175,6 +244,118 @@ export function AppProvider({ children }: {children: ReactNode;}) {
     storeGuestId(storedGuestId);
     loadCart(storedGuestId);
   }, []);
+
+  useEffect(() => {
+    const storedAuth = loadStoredAuth();
+    if (!storedAuth) return;
+    if (storedAuth.refreshToken) {
+      setIsAuthLoading(true);
+      apiRequest<AuthResponse>('/api/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken: storedAuth.refreshToken })
+      })
+        .then((auth) => {
+          applyAuth(auth, storedAuth.rememberMe);
+        })
+        .catch(() => {
+          clearAuth();
+        })
+        .finally(() => setIsAuthLoading(false));
+      return;
+    }
+    if (storedAuth.token && storedAuth.user) {
+      setUser(storedAuth.user);
+      setToken(storedAuth.token);
+      setRefreshToken(storedAuth.refreshToken || null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (token) {
+      loadCart();
+    }
+  }, [token]);
+
+  const login = async (
+    email: string,
+    password: string,
+    rememberMe: boolean
+  ) => {
+    setIsAuthLoading(true);
+    setAuthError(null);
+    try {
+      const response = await apiRequest<AuthResponse>('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          email,
+          password,
+          guestId: localStorage.getItem(GUEST_ID_KEY) || undefined
+        })
+      });
+      applyAuth(response, rememberMe);
+      addToast(`Welcome back, ${response.user.name}!`, 'success');
+      return response.user;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Login failed';
+      setAuthError(message);
+      addToast(message, 'error');
+      throw err;
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    rememberMe: boolean
+  ) => {
+    setIsAuthLoading(true);
+    setAuthError(null);
+    try {
+      const response = await apiRequest<AuthResponse>('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          guestId: localStorage.getItem(GUEST_ID_KEY) || undefined
+        })
+      });
+      applyAuth(response, rememberMe);
+      addToast('Account created successfully!', 'success');
+      return response.user;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Registration failed';
+      setAuthError(message);
+      addToast(message, 'error');
+      throw err;
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    setIsAuthLoading(true);
+    try {
+      if (refreshToken) {
+        await apiRequest('/api/auth/logout', {
+          method: 'POST',
+          body: JSON.stringify({ refreshToken })
+        });
+      }
+    } catch {
+      // ignore logout errors
+    } finally {
+      clearAuth();
+      loadCart(guestId);
+      addToast('Logged out successfully', 'info');
+      setIsAuthLoading(false);
+    }
+  };
   const addToCart = async (
     productId: string,
     size: ProductSize,
@@ -184,7 +365,7 @@ export function AppProvider({ children }: {children: ReactNode;}) {
     try {
       const response = await apiRequest<CartResponse>('/api/cart/items', {
         method: 'POST',
-        headers: buildGuestHeaders(guestId),
+        headers: getCartHeaders(),
         body: JSON.stringify({ productId, size, quantity })
       });
       syncCart(response);
@@ -204,7 +385,7 @@ export function AppProvider({ children }: {children: ReactNode;}) {
         `/api/cart/items/${itemId}`,
         {
           method: 'DELETE',
-          headers: buildGuestHeaders(guestId)
+          headers: getCartHeaders()
         }
       );
       syncCart(response);
@@ -228,7 +409,7 @@ export function AppProvider({ children }: {children: ReactNode;}) {
         `/api/cart/items/${itemId}`,
         {
           method: 'PATCH',
-          headers: buildGuestHeaders(guestId),
+          headers: getCartHeaders(),
           body: JSON.stringify({ quantity })
         }
       );
@@ -246,7 +427,7 @@ export function AppProvider({ children }: {children: ReactNode;}) {
     try {
       const response = await apiRequest<CartResponse>('/api/cart', {
         method: 'DELETE',
-        headers: buildGuestHeaders(guestId)
+        headers: getCartHeaders()
       });
       syncCart(response);
       addToast('Cart cleared', 'info');
@@ -270,7 +451,11 @@ export function AppProvider({ children }: {children: ReactNode;}) {
       <AuthContext.Provider
         value={{
           user,
+          token,
+          refreshToken,
           isAuthenticated: !!user,
+          isAuthLoading,
+          authError,
           login,
           logout,
           register
