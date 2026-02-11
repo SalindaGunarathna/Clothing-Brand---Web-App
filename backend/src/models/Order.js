@@ -42,6 +42,38 @@ const orderSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    shippingAddress: {
+      name: {
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 200
+      },
+      phone: {
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 30
+      },
+      address: {
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 300
+      },
+      city: {
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 100
+      },
+      zip: {
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 20
+      }
+    },
     items: {
       type: [orderItemSchema],
       required: true

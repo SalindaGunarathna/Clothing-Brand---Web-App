@@ -26,6 +26,17 @@ const getAvailableStock = (product, size) => {
 const checkout = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const itemIds = Array.isArray(req.body?.itemIds) ? req.body.itemIds : null;
+  const shippingAddress = req.body?.shippingAddress;
+  if (!shippingAddress) {
+    throw new ApiError(400, 'Shipping address is required');
+  }
+  const normalizedShipping = {
+    name: String(shippingAddress.name || '').trim(),
+    phone: String(shippingAddress.phone || '').trim(),
+    address: String(shippingAddress.address || '').trim(),
+    city: String(shippingAddress.city || '').trim(),
+    zip: String(shippingAddress.zip || '').trim()
+  };
 
   const result = await withTransaction(async (session) => {
     // Transaction keeps stock updates, order creation, and cart updates consistent.
@@ -106,6 +117,7 @@ const checkout = asyncHandler(async (req, res) => {
 
     const orderDoc = {
       user: userId,
+      shippingAddress: normalizedShipping,
       items: orderItems,
       total: Number(total.toFixed(2)),
       orderDate: new Date()
