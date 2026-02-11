@@ -6,6 +6,8 @@ import { SizeSelector } from '../components/ui/SizeSelector';
 import { QuantityStepper } from '../components/ui/QuantityStepper';
 import { Skeleton } from '../components/ui/Skeleton';
 import { formatCategory, formatPrice } from '../lib/utils';
+import { ProductSize } from '../lib/types';
+import { useCart } from '../lib/store';
 import { useAppDispatch, useAppSelector } from '../state/hooks';
 import { fetchProductById } from '../state/productsSlice';
 
@@ -15,8 +17,10 @@ export function ProductDetailPage() {
   const { selected, selectedStatus, selectedError } = useAppSelector(
     (state) => state.products
   );
-  const [selectedSize, setSelectedSize] = useState('');
+  const { addToCart, isCartLoading } = useCart();
+  const [selectedSize, setSelectedSize] = useState<ProductSize | ''>('');
   const [quantity, setQuantity] = useState(1);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -53,6 +57,14 @@ export function ProductDetailPage() {
   if (!selected) {
     return <div className="p-20 text-center">Product not found</div>;
   }
+
+  const handleAddToCart = () => {
+    if (!selectedSize) {
+      setError('Please select a size');
+      return;
+    }
+    addToCart(selected.id, selectedSize, quantity);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 animate-fade-in">
@@ -112,7 +124,9 @@ export function ProductDetailPage() {
                 selectedSize={selectedSize}
                 onSelect={(size) => {
                   setSelectedSize(size);
+                  setError('');
                 }}
+                error={error}
               />
 
             </div>
@@ -124,8 +138,14 @@ export function ProductDetailPage() {
             </div>
 
             {/* Actions */}
-            <Button size="lg" fullWidth disabled>
-              Add to Cart (Coming Soon)
+            <Button
+              size="lg"
+              fullWidth
+              onClick={handleAddToCart}
+              isLoading={isCartLoading}
+              disabled={isCartLoading}>
+
+              Add to Cart
             </Button>
 
             {/* Value Props */}

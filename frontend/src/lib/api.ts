@@ -5,7 +5,10 @@ type ApiErrorPayload = {
   message?: string;
 };
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function apiRequest<T>(
+  path: string,
+  init?: RequestInit
+): Promise<T> {
   const url = path.startsWith('http')
     ? path
     : `${API_BASE_URL}${path}`;
@@ -30,6 +33,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-export function apiGet<T>(path: string): Promise<T> {
-  return request<T>(path, { method: 'GET' });
+export function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
+  return apiRequest<T>(path, { ...init, method: 'GET' });
 }

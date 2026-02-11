@@ -7,9 +7,22 @@ import { Button } from '../components/ui/Button';
 import { QuantityStepper } from '../components/ui/QuantityStepper';
 import { EmptyState } from '../components/ui/EmptyState';
 export function CartPage() {
-  const { items, removeFromCart, updateQuantity, cartTotal } = useCart();
+  const {
+    items,
+    removeFromCart,
+    updateQuantity,
+    cartTotal,
+    isCartLoading
+  } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  if (isCartLoading) {
+    return (
+      <div className="container mx-auto px-4 py-20 text-center text-text-secondary">
+        Loading cart...
+      </div>);
+
+  }
   if (items.length === 0) {
     return (
       <div className="container mx-auto px-4 py-20">
@@ -34,11 +47,11 @@ export function CartPage() {
         <div className="lg:col-span-2 space-y-6">
           {items.map((item) =>
           <div
-            key={`${item.productId}-${item.selectedSize}`}
+            key={item.id}
             className="flex gap-6 p-6 border border-border rounded-sm bg-white">
 
               <Link
-              to={`/product/${item.productId}`}
+              to={`/product/${item.product.id}`}
               className="shrink-0 w-24 h-32 bg-surface-alt rounded-sm overflow-hidden">
 
                 <img
@@ -52,13 +65,13 @@ export function CartPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <Link
-                    to={`/product/${item.productId}`}
+                    to={`/product/${item.product.id}`}
                     className="font-serif text-lg hover:text-accent transition-colors">
 
                       {item.product.name}
                     </Link>
                     <p className="text-sm text-text-secondary mt-1">
-                      Size: {item.selectedSize}
+                      Size: {item.size}
                     </p>
                     <p className="text-sm text-text-secondary">
                       Category: {formatCategory(item.product.category)}
@@ -73,12 +86,12 @@ export function CartPage() {
                   <QuantityStepper
                   value={item.quantity}
                   onChange={(val) =>
-                  updateQuantity(item.productId, item.selectedSize, val)
+                  updateQuantity(item.id, val)
                   } />
 
                   <button
                   onClick={() =>
-                  removeFromCart(item.productId, item.selectedSize)
+                  removeFromCart(item.id)
                   }
                   className="text-sm text-error hover:text-red-700 flex items-center gap-1 transition-colors">
 

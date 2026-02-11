@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { CheckCircle } from 'lucide-react';
 export function CheckoutPage() {
-  const { items, cartTotal, clearCart } = useCart();
+  const { items, cartTotal, clearCart, isCartLoading } = useCart();
   const { addToast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -41,6 +41,13 @@ export function CheckoutPage() {
       setIsLoading(false);
     }, 2000);
   };
+  if (isCartLoading) {
+    return (
+      <div className="container mx-auto px-4 py-12 animate-fade-in">
+        <p className="text-center text-text-secondary">Loading cart...</p>
+      </div>);
+
+  }
   if (items.length === 0) {
     navigate('/cart');
     return null;
@@ -160,7 +167,7 @@ export function CheckoutPage() {
           <div className="space-y-4 mb-6 max-h-80 overflow-y-auto pr-2">
             {items.map((item) =>
             <div
-              key={`${item.productId}-${item.selectedSize}`}
+              key={item.id}
               className="flex gap-4">
 
                 <div className="relative h-16 w-12 bg-white rounded-sm overflow-hidden shrink-0">
@@ -176,7 +183,7 @@ export function CheckoutPage() {
                 <div className="flex-1">
                   <p className="font-medium text-sm">{item.product.name}</p>
                   <p className="text-xs text-text-secondary">
-                    {item.selectedSize}
+                    {item.size}
                   </p>
                 </div>
                 <p className="text-sm font-medium">

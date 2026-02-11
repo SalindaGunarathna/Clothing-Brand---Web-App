@@ -19,10 +19,18 @@ export interface Product {
   createdAt?: string;
 }
 
+export interface CartProduct {
+  id: string;
+  name: string;
+  price: number;
+  imageUrl: string;
+  category: Category;
+}
+
 export interface CartItem {
-  productId: string;
-  product: Product;
-  selectedSize: ProductSize;
+  id: string;
+  product: CartProduct;
+  size: ProductSize;
   quantity: number;
 }
 

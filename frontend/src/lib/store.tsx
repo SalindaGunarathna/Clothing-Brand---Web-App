@@ -5,14 +5,8 @@ import React, {
   useContext,
   ReactNode
 } from 'react';
-import {
-  CartItem,
-  Product,
-  ProductSize,
-  User,
-  Toast,
-  ToastType
-} from './types';
+import { apiRequest } from './api';
+import { CartItem, ProductSize, User, Toast, ToastType } from './types';
 // --- Toast Context ---
 interface ToastContextType {
   toasts: Toast[];
@@ -42,16 +36,13 @@ export function useAuth() {
 // --- Cart Context ---
 interface CartContextType {
   items: CartItem[];
-  addToCart: (product: Product, size: ProductSize, quantity: number) => void;
-  removeFromCart: (productId: string, size: ProductSize) => void;
-  updateQuantity: (
-    productId: string,
-    size: ProductSize,
-    quantity: number
-  ) => void;
+  addToCart: (productId: string, size: ProductSize, quantity: number) => void;
+  removeFromCart: (itemId: string) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   cartTotal: number;
   cartCount: number;
+  isCartLoading: boolean;
 }
 const CartContext = createContext<CartContextType | undefined>(undefined);
 export function useCart() {
@@ -104,88 +95,169 @@ export function AppProvider({ children }: {children: ReactNode;}) {
   };
   // Cart State
   const [items, setItems] = useState<CartItem[]>([]);
+  const [cartTotal, setCartTotal] = useState(0);
+  const [guestId, setGuestId] = useState('');
+  const [isCartLoading, setIsCartLoading] = useState(false);
+  const GUEST_ID_KEY = 'maison-guest-id';
+
+  const getOrCreateGuestId = () => {
+    const existing = localStorage.getItem(GUEST_ID_KEY);
+    if (existing) return existing;
+    const fallback =
+      `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const id =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto ?
+      crypto.randomUUID() :
+      fallback;
+    localStorage.setItem(GUEST_ID_KEY, id);
+    return id;
+  };
+
+  const storeGuestId = (id: string) => {
+    if (id) {
+      localStorage.setItem(GUEST_ID_KEY, id);
+    } else {
+      localStorage.removeItem(GUEST_ID_KEY);
+    }
+    setGuestId(id);
+  };
+
+  const buildGuestHeaders = (id?: string) => {
+    const headerId =
+      id || guestId || localStorage.getItem(GUEST_ID_KEY) || '';
+    return headerId ? { 'x-guest-id': headerId } : undefined;
+  };
+
+  type CartResponse = {
+    data: {
+      items: CartItem[];
+      total?: number;
+    };
+    guestId?: string;
+  };
+
+  const syncCart = (response: CartResponse) => {
+    const nextItems = response.data?.items || [];
+    setItems(nextItems);
+    const total =
+      typeof response.data?.total === 'number' ?
+      response.data.total :
+      nextItems.reduce(
+        (sum, item) => sum + item.product.price * item.quantity,
+        0
+      );
+    setCartTotal(total);
+    if (response.guestId) {
+      storeGuestId(response.guestId);
+    }
+  };
+
+  const loadCart = async (id: string) => {
+    setIsCartLoading(true);
+    try {
+      const response = await apiRequest<CartResponse>('/api/cart', {
+        method: 'GET',
+        headers: buildGuestHeaders(id)
+      });
+      syncCart(response);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to load cart';
+      addToast(message, 'error');
+    } finally {
+      setIsCartLoading(false);
+    }
+  };
+
   // Load cart from local storage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('maison-cart');
-    if (savedCart) {
-      try {
-        setItems(JSON.parse(savedCart));
-      } catch (e) {
-        console.error('Failed to parse cart', e);
-      }
-    }
+    const storedGuestId = getOrCreateGuestId();
+    storeGuestId(storedGuestId);
+    loadCart(storedGuestId);
   }, []);
-  // Save cart to local storage on change
-  useEffect(() => {
-    localStorage.setItem('maison-cart', JSON.stringify(items));
-  }, [items]);
-  const addToCart = (
-    product: Product,
+  const addToCart = async (
+    productId: string,
     size: ProductSize,
     quantity: number
   ) => {
-    setItems((prev) => {
-      const existing = prev.find(
-        (item) => item.productId === product.id && item.selectedSize === size
-      );
-      if (existing) {
-        addToast(`Updated quantity for ${product.name}`, 'success');
-        return prev.map((item) =>
-        item.productId === product.id && item.selectedSize === size ?
+    setIsCartLoading(true);
+    try {
+      const response = await apiRequest<CartResponse>('/api/cart/items', {
+        method: 'POST',
+        headers: buildGuestHeaders(guestId),
+        body: JSON.stringify({ productId, size, quantity })
+      });
+      syncCart(response);
+      addToast('Added to cart', 'success');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to add to cart';
+      addToast(message, 'error');
+    } finally {
+      setIsCartLoading(false);
+    }
+  };
+  const removeFromCart = async (itemId: string) => {
+    setIsCartLoading(true);
+    try {
+      const response = await apiRequest<CartResponse>(
+        `/api/cart/items/${itemId}`,
         {
-          ...item,
-          quantity: item.quantity + quantity
-        } :
-        item
-        );
-      }
-      addToast(`Added ${product.name} to cart`, 'success');
-      return [
-      ...prev,
-      {
-        productId: product.id,
-        product,
-        selectedSize: size,
-        quantity
-      }];
-
-    });
+          method: 'DELETE',
+          headers: buildGuestHeaders(guestId)
+        }
+      );
+      syncCart(response);
+      addToast('Item removed from cart', 'info');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to remove item';
+      addToast(message, 'error');
+    } finally {
+      setIsCartLoading(false);
+    }
   };
-  const removeFromCart = (productId: string, size: ProductSize) => {
-    setItems((prev) =>
-    prev.filter(
-      (item) => !(item.productId === productId && item.selectedSize === size)
-    )
-    );
-    addToast('Item removed from cart', 'info');
-  };
-  const updateQuantity = (
-  productId: string,
-  size: ProductSize,
-  quantity: number) =>
-  {
+  const updateQuantity = async (itemId: string, quantity: number) => {
     if (quantity <= 0) {
-      removeFromCart(productId, size);
+      await removeFromCart(itemId);
       return;
     }
-    setItems((prev) =>
-    prev.map((item) =>
-    item.productId === productId && item.selectedSize === size ?
-    {
-      ...item,
-      quantity
-    } :
-    item
-    )
-    );
+    setIsCartLoading(true);
+    try {
+      const response = await apiRequest<CartResponse>(
+        `/api/cart/items/${itemId}`,
+        {
+          method: 'PATCH',
+          headers: buildGuestHeaders(guestId),
+          body: JSON.stringify({ quantity })
+        }
+      );
+      syncCart(response);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to update quantity';
+      addToast(message, 'error');
+    } finally {
+      setIsCartLoading(false);
+    }
   };
-  const clearCart = () => {
-    setItems([]);
+  const clearCart = async () => {
+    setIsCartLoading(true);
+    try {
+      const response = await apiRequest<CartResponse>('/api/cart', {
+        method: 'DELETE',
+        headers: buildGuestHeaders(guestId)
+      });
+      syncCart(response);
+      addToast('Cart cleared', 'info');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to clear cart';
+      addToast(message, 'error');
+    } finally {
+      setIsCartLoading(false);
+    }
   };
-  const cartTotal = items.reduce(
-    (total, item) => total + item.product.price * item.quantity,
-    0
-  );
   const cartCount = items.reduce((count, item) => count + item.quantity, 0);
   return (
     <ToastContext.Provider
@@ -212,7 +284,8 @@ export function AppProvider({ children }: {children: ReactNode;}) {
             updateQuantity,
             clearCart,
             cartTotal,
-            cartCount
+            cartCount,
+            isCartLoading
           }}>
 
           {children}
