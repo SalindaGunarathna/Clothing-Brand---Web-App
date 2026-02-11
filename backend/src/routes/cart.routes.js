@@ -1,6 +1,6 @@
 const express = require('express');
 const auth = require('../middleware/auth');
-const optionalAuth = require('../middleware/optionalAuth');
+const { optionalAuth } = auth;
 const validate = require('../middleware/validate');
 const {
   addItemValidation,
