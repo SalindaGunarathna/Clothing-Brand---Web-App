@@ -58,12 +58,11 @@ export function LoginPage() {
             placeholder="••••••••" />
 
             <div className="flex justify-end">
-              <button
-                type="button"
+              <Link
+                to="/forgot-password"
                 className="text-xs text-text-secondary hover:text-text hover:underline">
-
                 Forgot password?
-              </button>
+              </Link>
             </div>
           </div>
 

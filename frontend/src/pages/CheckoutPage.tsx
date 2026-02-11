@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart, useToast, useAuth } from '../lib/store';
-import { formatPrice, generateOrderId } from '../lib/utils';
+import { checkoutOrder } from '../lib/ordersApi';
+import { calculateTotal, formatPrice } from '../lib/utils';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { CheckCircle } from 'lucide-react';
 export function CheckoutPage() {
   const { items, cartTotal, clearCart, isCartLoading } = useCart();
-  const { isAuthenticated, isAuthLoading } = useAuth();
+  const { isAuthenticated, isAuthLoading, token } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const total = calculateTotal(cartTotal);
   // Mock form state
   const [formData, setFormData] = useState({
     email: '',
@@ -19,6 +21,7 @@ export function CheckoutPage() {
     address: '',
     city: '',
     zip: '',
+    phone: '',
     cardName: '',
     cardNumber: '',
     expiry: '',
@@ -33,14 +36,31 @@ export function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate processing
-    setTimeout(() => {
-      const orderId = generateOrderId();
-      clearCart();
+    if (!token) {
+      addToast('Please log in to place your order.', 'error');
+      setIsLoading(false);
+      return;
+    }
+    try {
+      const orderId = await checkoutOrder(token, {
+        shippingAddress: {
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          zip: formData.zip
+        }
+      });
+      await clearCart();
       addToast('Order placed successfully!', 'success');
       navigate(`/order-confirmation/${orderId}`);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to place order';
+      addToast(message, 'error');
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
   useEffect(() => {
     if (!isAuthLoading && !isCartLoading && !isAuthenticated) {
@@ -128,6 +148,12 @@ export function CheckoutPage() {
                 onChange={handleInputChange} />
 
             </div>
+            <Input
+              name="phone"
+              label="Mobile Number"
+              required
+              value={formData.phone}
+              onChange={handleInputChange} />
           </section>
 
           {/* Payment */}
@@ -214,7 +240,7 @@ export function CheckoutPage() {
             </div>
             <div className="flex justify-between text-lg font-medium pt-2 border-t border-border">
               <span>Total</span>
-              <span>{formatPrice(cartTotal * 1.08)}</span>
+              <span>{formatPrice(total)}</span>
             </div>
           </div>
 

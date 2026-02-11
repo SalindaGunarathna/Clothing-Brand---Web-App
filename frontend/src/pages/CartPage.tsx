@@ -2,7 +2,12 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, ShoppingBag } from 'lucide-react';
 import { useCart, useAuth } from '../lib/store';
-import { formatCategory, formatPrice } from '../lib/utils';
+import {
+  calculateTax,
+  calculateTotal,
+  formatCategory,
+  formatPrice
+} from '../lib/utils';
 import { Button } from '../components/ui/Button';
 import { QuantityStepper } from '../components/ui/QuantityStepper';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -16,6 +21,8 @@ export function CartPage() {
   } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const tax = calculateTax(cartTotal);
+  const total = calculateTotal(cartTotal);
   if (isCartLoading) {
     return (
       <div className="container mx-auto px-4 py-20 text-center text-text-secondary">
@@ -119,15 +126,13 @@ export function CartPage() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-text-secondary">Tax (Estimated)</span>
-                <span className="font-medium">
-                  {formatPrice(cartTotal * 0.08)}
-                </span>
+                <span className="font-medium">{formatPrice(tax)}</span>
               </div>
             </div>
 
             <div className="flex justify-between text-lg font-medium mb-8">
               <span>Total</span>
-              <span>{formatPrice(cartTotal * 1.08)}</span>
+              <span>{formatPrice(total)}</span>
             </div>
 
             {isAuthenticated ?

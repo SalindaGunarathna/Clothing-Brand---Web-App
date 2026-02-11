@@ -45,20 +45,27 @@ export interface User {
 export interface OrderItem {
   productId: string;
   name: string;
-  image: string;
+  imageUrl?: string;
   size: ProductSize;
   quantity: number;
   price: number;
 }
 
+export interface ShippingAddress {
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  zip: string;
+}
+
 export interface Order {
   id: string;
-  userId: string;
   items: OrderItem[];
   total: number;
   status: OrderStatus;
-  date: string;
-  shippingAddress?: string;
+  orderDate: string;
+  shippingAddress?: ShippingAddress;
 }
 
 export interface Toast {

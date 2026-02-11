@@ -105,6 +105,12 @@ export function AppShell({ children }: {children: React.ReactNode;}) {
 
                       My Orders
                     </Link>
+                    <Link
+                    to="/profile"
+                    className="block px-3 py-2 text-sm hover:bg-surface-alt rounded-sm">
+
+                      Profile
+                    </Link>
                     <button
                     onClick={logout}
                     className="w-full text-left px-3 py-2 text-sm text-error hover:bg-surface-alt rounded-sm">
@@ -216,6 +222,12 @@ export function AppShell({ children }: {children: React.ReactNode;}) {
                   className="block py-2 text-text hover:text-accent">
 
                       My Orders
+                    </Link>
+                    <Link
+                  to="/profile"
+                  className="block py-2 text-text hover:text-accent">
+
+                      Profile
                     </Link>
                     <button onClick={logout} className="block py-2 text-error">
                       Logout

@@ -15,6 +15,22 @@ export function formatPrice(price: number): string {
   }).format(price);
 }
 
+export const DEFAULT_TAX_RATE = 0.08;
+
+export function calculateTax(
+  subtotal: number,
+  rate: number = DEFAULT_TAX_RATE
+): number {
+  return Number((subtotal * rate).toFixed(2));
+}
+
+export function calculateTotal(
+  subtotal: number,
+  rate: number = DEFAULT_TAX_RATE
+): number {
+  return Number((subtotal + calculateTax(subtotal, rate)).toFixed(2));
+}
+
 export function generateOrderId(): string {
   return `ORD-${Math.floor(Math.random() * 1000000).
   toString().
