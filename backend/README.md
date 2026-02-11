@@ -83,3 +83,9 @@ Feature 1: User Accounts & Authentication (Express + MongoDB)
 ## Webhook (Order Status)
 - Optional webhook on status change:
   - `WEBHOOK_URL`, `WEBHOOK_SECRET`, `WEBHOOK_TIMEOUT_MS`
+
+
+## Default seed credentials (change in env if you want)
+
+Admin: admin@clothingbrand.local / Admin123!
+User: user@clothingbrand.local / User123!
