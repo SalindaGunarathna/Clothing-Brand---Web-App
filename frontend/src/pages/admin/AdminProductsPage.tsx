@@ -456,7 +456,7 @@ export function AdminProductsPage() {
                     <TableCell className="text-right">
                       <div className="inline-flex items-center gap-2">
                         <Link
-                          to={`/product/${product.id}`}
+                          to={`/admin/products/${product.id}`}
                           className="h-8 w-8 rounded-sm border border-border inline-flex items-center justify-center hover:bg-surface-alt">
                           <Edit3 className="h-4 w-4" />
                         </Link>

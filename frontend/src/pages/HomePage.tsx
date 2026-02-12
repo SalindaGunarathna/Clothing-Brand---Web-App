@@ -6,11 +6,14 @@ import { Skeleton } from '../components/ui/Skeleton';
 import { formatPrice } from '../lib/utils';
 import { useAppDispatch, useAppSelector } from '../state/hooks';
 import { fetchFeaturedProducts } from '../state/productsSlice';
+import { useAuth } from '../lib/store';
 export function HomePage() {
   const dispatch = useAppDispatch();
+  const { user } = useAuth();
   const { featured, featuredStatus } = useAppSelector(
     (state) => state.products
   );
+  const isAdmin = user?.role === 'ADMIN';
 
   React.useEffect(() => {
     if (featuredStatus === 'idle') {
@@ -41,12 +44,19 @@ export function HomePage() {
               Timeless pieces crafted for the modern wardrobe. Discover the art
               of understated luxury.
             </p>
-            <div className="pt-4">
+            <div className="pt-4 flex flex-wrap gap-3">
               <Link to="/shop">
                 <Button size="lg" variant="accent" className="min-w-[160px]">
                   Shop Now
                 </Button>
               </Link>
+              {isAdmin &&
+              <Link to="/admin">
+                  <Button size="lg" variant="secondary" className="min-w-[160px]">
+                    Admin Dashboard
+                  </Button>
+                </Link>
+              }
             </div>
           </div>
         </div>

@@ -30,6 +30,7 @@ import { OrderDetailPage } from './pages/OrderDetailPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AdminOrdersPage } from './pages/admin/AdminOrdersPage';
 import { AdminProductsPage } from './pages/admin/AdminProductsPage';
+import { AdminProductEditPage } from './pages/admin/AdminProductEditPage';
 // Layout Wrappers
 const CustomerLayout = () =>
 <AppShell>
@@ -64,10 +65,11 @@ export function App() {
 
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminGate />}>
-              <Route index element={<AdminDashboardPage />} />
-              <Route path="orders" element={<AdminOrdersPage />} />
-              <Route path="products" element={<AdminProductsPage />} />
-            </Route>
+            <Route index element={<AdminDashboardPage />} />
+            <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="products" element={<AdminProductsPage />} />
+            <Route path="products/:id" element={<AdminProductEditPage />} />
+          </Route>
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />

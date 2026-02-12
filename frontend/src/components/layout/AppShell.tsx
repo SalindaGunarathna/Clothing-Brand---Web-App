@@ -4,6 +4,7 @@ import {
   ShoppingBag,
   Search,
   User as UserIcon,
+  LayoutDashboard,
   Menu,
   X,
   Instagram,
@@ -84,6 +85,14 @@ export function AppShell({ children }: {children: React.ReactNode;}) {
 
               <Search className="h-5 w-5" />
             </button>
+            {user?.role === 'ADMIN' &&
+            <Link to="/admin" className="hidden sm:inline-flex">
+                <Button size="sm" variant="secondary" className="gap-2">
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
+                </Button>
+              </Link>
+            }
 
             {user ?
             <div className="relative group hidden sm:block">

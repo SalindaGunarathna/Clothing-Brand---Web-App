@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { SizeSelector } from '../components/ui/SizeSelector';
 import { QuantityStepper } from '../components/ui/QuantityStepper';
 import { Skeleton } from '../components/ui/Skeleton';
+import { ProductDetailLayout } from '../components/product/ProductDetailLayout';
 import { formatCategory, formatPrice } from '../lib/utils';
 import { ProductSize } from '../lib/types';
 import { useCart } from '../lib/store';
@@ -81,91 +82,80 @@ export function ProductDetailPage() {
         <span className="text-text font-medium">{selected.name}</span>
       </nav>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
-        {/* Image */}
-        <div className="space-y-4">
-          <div className="aspect-[3/4] w-full overflow-hidden rounded-sm bg-surface-alt">
-            <img
-              src={selected.imageUrl}
-              alt={selected.name}
-              className="h-full w-full object-cover transition-all duration-500" />
-
+      <ProductDetailLayout
+        imageUrl={selected.imageUrl}
+        imageAlt={selected.name}
+      >
+        <div className="mb-8 border-b border-border pb-8">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-accent uppercase tracking-wider">
+              {formatCategory(selected.category)}
+            </span>
           </div>
+          <h1 className="text-4xl font-serif mb-4">{selected.name}</h1>
+          <p className="text-2xl font-medium text-text mb-6">
+            {formatPrice(selected.price)}
+          </p>
+          <p className="text-text-secondary leading-relaxed">
+            {selected.description}
+          </p>
         </div>
 
-        {/* Product Info */}
-        <div className="flex flex-col">
-          <div className="mb-8 border-b border-border pb-8">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-accent uppercase tracking-wider">
-                {formatCategory(selected.category)}
-              </span>
+        <div className="space-y-8 mb-8">
+          {/* Size Selector */}
+          <div>
+            <div className="flex justify-between mb-2">
+              <span className="text-sm font-medium">Select Size</span>
+              <button className="text-sm text-text-secondary underline hover:text-text">
+                Size Guide
+              </button>
             </div>
-            <h1 className="text-4xl font-serif mb-4">{selected.name}</h1>
-            <p className="text-2xl font-medium text-text mb-6">
-              {formatPrice(selected.price)}
-            </p>
-            <p className="text-text-secondary leading-relaxed">
-              {selected.description}
-            </p>
+            <SizeSelector
+              sizes={selected.sizes}
+              selectedSize={selectedSize}
+              onSelect={(size) => {
+                setSelectedSize(size);
+                setError('');
+              }}
+              error={error}
+            />
+
           </div>
 
-          <div className="space-y-8 mb-8">
-            {/* Size Selector */}
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium">Select Size</span>
-                <button className="text-sm text-text-secondary underline hover:text-text">
-                  Size Guide
-                </button>
-              </div>
-              <SizeSelector
-                sizes={selected.sizes}
-                selectedSize={selectedSize}
-                onSelect={(size) => {
-                  setSelectedSize(size);
-                  setError('');
-                }}
-                error={error}
-              />
+          {/* Quantity */}
+          <div>
+            <span className="text-sm font-medium mb-2 block">Quantity</span>
+            <QuantityStepper value={quantity} onChange={setQuantity} />
+          </div>
 
+          {/* Actions */}
+          <Button
+            size="lg"
+            fullWidth
+            onClick={handleAddToCart}
+            isLoading={isCartLoading}
+            disabled={isCartLoading}>
+
+            Add to Cart
+          </Button>
+
+          {/* Value Props */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+            <div className="flex flex-col items-center text-center gap-2 p-4 bg-surface-alt/50 rounded-sm">
+              <Truck className="h-5 w-5 text-text-secondary" />
+              <span className="text-xs font-medium">Free Shipping</span>
             </div>
-
-            {/* Quantity */}
-            <div>
-              <span className="text-sm font-medium mb-2 block">Quantity</span>
-              <QuantityStepper value={quantity} onChange={setQuantity} />
+            <div className="flex flex-col items-center text-center gap-2 p-4 bg-surface-alt/50 rounded-sm">
+              <RefreshCw className="h-5 w-5 text-text-secondary" />
+              <span className="text-xs font-medium">Free Returns</span>
             </div>
-
-            {/* Actions */}
-            <Button
-              size="lg"
-              fullWidth
-              onClick={handleAddToCart}
-              isLoading={isCartLoading}
-              disabled={isCartLoading}>
-
-              Add to Cart
-            </Button>
-
-            {/* Value Props */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
-              <div className="flex flex-col items-center text-center gap-2 p-4 bg-surface-alt/50 rounded-sm">
-                <Truck className="h-5 w-5 text-text-secondary" />
-                <span className="text-xs font-medium">Free Shipping</span>
-              </div>
-              <div className="flex flex-col items-center text-center gap-2 p-4 bg-surface-alt/50 rounded-sm">
-                <RefreshCw className="h-5 w-5 text-text-secondary" />
-                <span className="text-xs font-medium">Free Returns</span>
-              </div>
-              <div className="flex flex-col items-center text-center gap-2 p-4 bg-surface-alt/50 rounded-sm">
-                <ShieldCheck className="h-5 w-5 text-text-secondary" />
-                <span className="text-xs font-medium">2-Year Warranty</span>
-              </div>
+            <div className="flex flex-col items-center text-center gap-2 p-4 bg-surface-alt/50 rounded-sm">
+              <ShieldCheck className="h-5 w-5 text-text-secondary" />
+              <span className="text-xs font-medium">2-Year Warranty</span>
             </div>
           </div>
         </div>
-      </div>
+      </ProductDetailLayout>
     </div>);
 
 }

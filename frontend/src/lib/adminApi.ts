@@ -259,6 +259,27 @@ export async function fetchAdminProducts(
   };
 }
 
+type AdminProductResponse = {
+  data: ApiAdminProduct;
+};
+
+export async function fetchAdminProductById(
+  token: string,
+  productId: string,
+  signal?: AbortSignal
+): Promise<AdminProduct> {
+  const response = await apiRequest<AdminProductResponse>(
+    `/api/products/admin/${productId}`,
+    {
+      method: 'GET',
+      headers: { authorization: `Bearer ${token}` },
+      signal
+    }
+  );
+
+  return mapAdminProduct(response.data);
+}
+
 export type ProductCreatePayload = {
   name: string;
   description: string;
@@ -267,6 +288,17 @@ export type ProductCreatePayload = {
   category: Category;
   sizes: ProductSize[];
   stockBySize?: Record<string, number>;
+};
+
+export type ProductUpdatePayload = {
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  category: Category;
+  sizes: ProductSize[];
+  stockBySize?: Record<string, number>;
+  isActive: boolean;
 };
 
 export async function createProduct(
@@ -278,5 +310,21 @@ export async function createProduct(
     headers: { authorization: `Bearer ${token}` },
     body: JSON.stringify(payload)
   });
+  return mapAdminProduct(response.data);
+}
+
+export async function updateAdminProduct(
+  token: string,
+  productId: string,
+  payload: ProductUpdatePayload
+): Promise<AdminProduct> {
+  const response = await apiRequest<{ data: ApiAdminProduct }>(
+    `/api/products/admin/${productId}`,
+    {
+      method: 'PATCH',
+      headers: { authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload)
+    }
+  );
   return mapAdminProduct(response.data);
 }
