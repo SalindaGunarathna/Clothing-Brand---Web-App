@@ -328,3 +328,13 @@ export async function updateAdminProduct(
   );
   return mapAdminProduct(response.data);
 }
+
+export async function deleteAdminProduct(
+  token: string,
+  productId: string
+): Promise<void> {
+  await apiRequest(`/api/products/admin/${productId}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${token}` }
+  });
+}

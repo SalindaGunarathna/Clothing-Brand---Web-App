@@ -182,7 +182,7 @@ export function ProductListingPage() {
               onChange={(e) =>
                 handleSortChange(e.target.value as FilterState['sortBy'])
               }
-              className="appearance-none bg-transparent border-none text-sm font-medium pr-8 focus:ring-0 cursor-pointer">
+              className="appearance-none h-10 min-w-[200px] rounded-sm border border-border bg-white px-3 pr-9 text-sm font-medium focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer">
 
               {sortOptions.map((option) =>
               <option key={option.value} value={option.value}>
@@ -190,7 +190,7 @@ export function ProductListingPage() {
                 </option>
               )}
             </select>
-            <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-text-secondary" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-text-secondary" />
           </div>
         </div>
       </div>

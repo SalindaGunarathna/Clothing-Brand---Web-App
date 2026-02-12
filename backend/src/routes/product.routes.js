@@ -5,7 +5,8 @@ const {
   getProductById,
   createProduct,
   getAdminProductById,
-  updateProduct
+  updateProduct,
+  deleteProduct
 } = require('../controllers/product.controller');
 const auth = require('../middleware/auth');
 const authorize = require('../middleware/authorize');
@@ -53,6 +54,14 @@ router.patch(
   updateProductValidation,
   validate,
   updateProduct
+);
+router.delete(
+  '/admin/:id',
+  auth,
+  authorize('ADMIN'),
+  productIdValidation,
+  validate,
+  deleteProduct
 );
 
 module.exports = router;

@@ -26,10 +26,14 @@ const getAvailableStock = (product, size) => {
 const checkout = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const itemIds = Array.isArray(req.body?.itemIds) ? req.body.itemIds : null;
+  const rawEmail = req.body?.email;
   const shippingAddress = req.body?.shippingAddress;
   if (!shippingAddress) {
     throw new ApiError(400, 'Shipping address is required');
   }
+  const normalizedEmail =
+    typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
+  const orderEmail = normalizedEmail || undefined;
   const normalizedShipping = {
     name: String(shippingAddress.name || '').trim(),
     phone: String(shippingAddress.phone || '').trim(),
@@ -117,6 +121,7 @@ const checkout = asyncHandler(async (req, res) => {
 
     const orderDoc = {
       user: userId,
+      email: orderEmail,
       shippingAddress: normalizedShipping,
       items: orderItems,
       total: Number(total.toFixed(2)),
@@ -154,8 +159,9 @@ const checkout = asyncHandler(async (req, res) => {
   );
 
   try {
+    const confirmationEmail = orderEmail || req.user.email;
     await sendOrderConfirmation({
-      to: req.user.email,
+      to: confirmationEmail,
       order: result.order,
       userName: req.user.name
     });
@@ -282,10 +288,11 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 
   if (previousStatus !== order.status) {
     // Only notify external systems when the status actually changes.
-    if (order.user?.email) {
+    const targetEmail = order.email || order.user?.email;
+    if (targetEmail) {
       try {
         await sendOrderStatusUpdate({
-          to: order.user.email,
+          to: targetEmail,
           order,
           userName: order.user?.name,
           previousStatus

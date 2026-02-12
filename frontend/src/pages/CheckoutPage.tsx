@@ -43,6 +43,7 @@ export function CheckoutPage() {
     }
     try {
       const orderId = await checkoutOrder(token, {
+        email: formData.email.trim() || undefined,
         shippingAddress: {
           name: `${formData.firstName} ${formData.lastName}`.trim(),
           phone: formData.phone,

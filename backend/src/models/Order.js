@@ -42,6 +42,12 @@ const orderSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      maxlength: 200
+    },
     shippingAddress: {
       name: {
         type: String,

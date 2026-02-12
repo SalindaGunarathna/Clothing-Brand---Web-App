@@ -17,6 +17,7 @@ import {
 } from '../../components/ui/Table';
 import {
   createProduct,
+  deleteAdminProduct,
   fetchAdminProducts
 } from '../../lib/adminApi';
 import { useAuth, useToast } from '../../lib/store';
@@ -91,6 +92,7 @@ export function AdminProductsPage() {
   const [error, setError] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [filters, setFilters] = useState<ProductFilters>({
@@ -286,6 +288,31 @@ export function AdminProductsPage() {
     }
   };
 
+  const handleDeleteProduct = async (productId: string) => {
+    if (!token) {
+      addToast('Admin authentication required.', 'error');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this product? This action cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    setDeleteId(productId);
+    try {
+      await deleteAdminProduct(token, productId);
+      addToast('Product deleted successfully', 'success');
+      setRefreshKey((prev) => prev + 1);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to delete product';
+      addToast(message, 'error');
+    } finally {
+      setDeleteId(null);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -462,9 +489,10 @@ export function AdminProductsPage() {
                         </Link>
                         <button
                           type="button"
-                          disabled
-                          title="Delete endpoint not available yet"
-                          className="h-8 w-8 rounded-sm border border-border inline-flex items-center justify-center text-text-secondary disabled:opacity-50">
+                          disabled={deleteId === product.id}
+                          title="Delete product"
+                          onClick={() => handleDeleteProduct(product.id)}
+                          className="h-8 w-8 rounded-sm border border-border inline-flex items-center justify-center text-text-secondary hover:text-error hover:border-error disabled:opacity-50">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>

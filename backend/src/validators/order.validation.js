@@ -3,6 +3,7 @@ const { body, param, query } = require('express-validator');
 const ORDER_STATUSES = ['PLACED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 
 const checkoutValidation = [
+  body('email').optional().isEmail().normalizeEmail(),
   body('shippingAddress').notEmpty().isObject(),
   body('shippingAddress.name').notEmpty().isString().trim(),
   body('shippingAddress.phone').notEmpty().isString().trim(),

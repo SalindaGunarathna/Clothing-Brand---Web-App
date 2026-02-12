@@ -26,6 +26,7 @@ export function AdminOrdersPage() {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [updating, setUpdating] = useState<Record<string, boolean>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const statusOptions: Array<{ label: string; value: OrderStatus }> = [
@@ -89,6 +90,10 @@ export function AdminOrdersPage() {
     } finally {
       setUpdating((prev) => ({ ...prev, [orderId]: false }));
     }
+  };
+
+  const toggleDetails = (orderId: string) => {
+    setExpandedId((prev) => (prev === orderId ? null : orderId));
   };
 
   return (
@@ -191,51 +196,108 @@ export function AdminOrdersPage() {
             </TableHeader>
             <TableBody>
               {orders.map((order) =>
-            <TableRow key={order.id}>
-                  <TableCell>
-                    <p className="text-sm font-medium">#{order.id}</p>
-                    <p className="text-xs text-text-secondary">
-                      {order.items.length} items
-                    </p>
-                  </TableCell>
-                  <TableCell>
-                    <p className="text-sm font-medium">
-                      {order.user?.name || 'Unknown'}
-                    </p>
-                    <p className="text-xs text-text-secondary">
-                      {order.user?.email || '—'}
-                    </p>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getOrderStatusVariant(order.status)}>
-                      {formatStatus(order.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatPrice(order.total)}</TableCell>
-                  <TableCell>
-                    {new Date(order.orderDate).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <select
-                      className="border border-border rounded-sm px-2 py-1 text-xs"
-                      value={order.status}
-                      onChange={(e) =>
-                        e.target.value !== order.status &&
-                        handleStatusUpdate(
-                          order.id,
-                          e.target.value as OrderStatus
-                        )
-                      }
-                      disabled={updating[order.id]}>
-                      {statusOptions.map((option) =>
-                    <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      )}
-                    </select>
-                  </TableCell>
-                </TableRow>
-            )}
+              <React.Fragment key={order.id}>
+                  <TableRow>
+                    <TableCell>
+                      <p className="text-sm font-medium">#{order.id}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-text-secondary">
+                          {order.items.length} items
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="px-2 h-7 text-xs"
+                          onClick={() => toggleDetails(order.id)}>
+                          {expandedId === order.id ? 'Hide' : 'View'}
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <p className="text-sm font-medium">
+                        {order.user?.name || 'Unknown'}
+                      </p>
+                      <p className="text-xs text-text-secondary">
+                        {order.user?.email || '—'}
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getOrderStatusVariant(order.status)}>
+                        {formatStatus(order.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{formatPrice(order.total)}</TableCell>
+                    <TableCell>
+                      {new Date(order.orderDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <select
+                        className="border border-border rounded-sm px-2 py-1 text-xs"
+                        value={order.status}
+                        onChange={(e) =>
+                          e.target.value !== order.status &&
+                          handleStatusUpdate(
+                            order.id,
+                            e.target.value as OrderStatus
+                          )
+                        }
+                        disabled={updating[order.id]}>
+                        {statusOptions.map((option) =>
+                      <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        )}
+                      </select>
+                    </TableCell>
+                  </TableRow>
+                  {expandedId === order.id &&
+                <TableRow className="bg-surface-alt/40 hover:bg-surface-alt/40">
+                      <TableCell colSpan={6} className="py-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-sm">
+                          <div className="space-y-2">
+                            <p className="text-xs text-text-secondary uppercase tracking-wide">
+                              Shipping
+                            </p>
+                            <div className="text-text">
+                              <p className="font-medium">
+                                {order.shippingAddress?.name || '—'}
+                              </p>
+                              <p>{order.shippingAddress?.phone || '—'}</p>
+                              <p>{order.shippingAddress?.address || '—'}</p>
+                              <p>
+                                {order.shippingAddress ?
+                          `${order.shippingAddress.city}, ${order.shippingAddress.zip}` :
+                          '—'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <p className="text-xs text-text-secondary uppercase tracking-wide">
+                              Items
+                            </p>
+                            <div className="space-y-3">
+                              {order.items.map((item, idx) =>
+                          <div key={`${order.id}-${idx}`} className="flex items-center justify-between">
+                                  <div>
+                                    <p className="font-medium">{item.name}</p>
+                                    <p className="text-xs text-text-secondary">
+                                      Size {item.size} · Qty {item.quantity}
+                                    </p>
+                                  </div>
+                                  <div className="text-sm font-medium">
+                                    {formatPrice(item.price * item.quantity)}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  }
+                </React.Fragment>
+              )}
             </TableBody>
           </Table>
         </Card>

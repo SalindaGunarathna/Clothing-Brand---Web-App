@@ -66,7 +66,7 @@ export async function fetchOrderById(
 
 export async function checkoutOrder(
   token: string,
-  payload: { shippingAddress: ShippingAddress }
+  payload: { shippingAddress: ShippingAddress; email?: string }
 ): Promise<string> {
   const response = await apiRequest<CheckoutResponse>('/api/orders/checkout', {
     method: 'POST',

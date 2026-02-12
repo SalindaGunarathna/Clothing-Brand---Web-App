@@ -333,11 +333,25 @@ const updateProduct = asyncHandler(async (req, res) => {
   res.json({ data: product });
 });
 
+// Admin-only product delete.
+const deleteProduct = asyncHandler(async (req, res) => {
+  const product = await Product.findByIdAndDelete(req.params.id);
+
+  if (!product) {
+    throw new ApiError(404, 'Product not found');
+  }
+
+  logger.info({ productId: product._id }, 'INFO Product deleted');
+
+  res.json({ data: product });
+});
+
 module.exports = {
   listProducts,
   listAdminProducts,
   getProductById,
   createProduct,
   getAdminProductById,
-  updateProduct
+  updateProduct,
+  deleteProduct
 };

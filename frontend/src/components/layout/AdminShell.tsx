@@ -59,7 +59,7 @@ export function AdminShell() {
 
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <Link
-            to="/admin"
+            to="/"
             className="text-2xl font-serif font-bold tracking-tight">
 
             MAISON
