@@ -70,7 +70,7 @@ export function HomePage() {
             {
               name: 'Women',
               image:
-              'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&q=80&w=800',
+              'https://jinhayari.com/cdn/shop/files/IMG_7139.png?v=1699602157&width=1024',
               link: '/shop?category=WOMEN'
             },
             {
@@ -82,7 +82,7 @@ export function HomePage() {
             {
               name: 'Kids',
               image:
-              'https://images.unsplash.com/photo-1519238263496-6361937a42d8?auto=format&fit=crop&q=80&w=800',
+              'https://img.drz.lazcdn.com/static/lk/p/ac1a325550faad9387bccea222ad1874.jpg_960x960q80.jpg_.webp',
               link: '/shop?category=KIDS'
             }].
             map((cat) =>
