@@ -48,7 +48,7 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/clothing-brand-backend
           tags: |
-            type=sha,format=short
+            type=raw,value=v${{ github.run_number }},enable=${{ github.ref_type != 'tag' }}
             type=ref,event=tag
 
       - name: Build and push
@@ -85,7 +85,7 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/clothing-brand-frontend
           tags: |
-            type=sha,format=short
+            type=raw,value=v${{ github.run_number }},enable=${{ github.ref_type != 'tag' }}
             type=ref,event=tag
 
       - name: Build and push

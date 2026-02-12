@@ -1,48 +1,39 @@
-# Clothing Brand - Monorepo
+# Clothing Brand Web App
 
-This repo contains:
-- `backend/` Node.js + Express API
-- `frontend/` Vite + React SPA
+Full-stack e-commerce app for a clothing brand. The repo contains a Node.js + Express API and a Vite + React SPA.
 
-## Docker Images
+**Repository Structure**
+- `backend/` API (Express + MongoDB)
+- `frontend/` SPA (Vite + React)
 
-### Image Names (Docker Hub)
-The GitHub Action publishes to:
-- `${DOCKERHUB_USERNAME}/clothing-brand-backend`
-- `${DOCKERHUB_USERNAME}/clothing-brand-frontend`
+**Core Features**
+- Product browsing with search, filters, and sorting
+- Product detail view and cart management
+- Checkout and order history
+- Admin portal for products and orders
+- Role-based access control
+- Order status updates and email notifications
 
-Tags:
-- `sha-<short>` on every push build
-- `vX.Y.Z` and `latest` on tag pushes (`v*`)
+**Run Locally**
+1. Clone the repo.
+2. Backend:
+```bash
+cd backend
+cp .env.example .env
+npm install
+npm run dev
+```
+3. Frontend:
+```bash
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+4. Open the app at `http://localhost:5173`.
 
-### Backend (API) Container
-
-**Required env**
-- `MONGO_URI`
-- `JWT_SECRET`
-- `REFRESH_TOKEN_SECRET`
-
-**Optional env (defaults shown)**
-- `PORT=4000`
-- `NODE_ENV=production`
-- `CORS_ORIGIN=` (empty = allow only non-production origins)
-- `LOG_LEVEL=info`
-- `JWT_EXPIRES_IN=1d`
-- `REFRESH_TOKEN_EXPIRES_IN=7d`
-- `RESET_PASSWORD_EXPIRES_IN=1h`
-- `BCRYPT_SALT_ROUNDS=12`
-- `MONGO_USE_TRANSACTIONS=true`
-- `SMTP_HOST=`
-- `SMTP_PORT=587`
-- `SMTP_SECURE=false`
-- `SMTP_USER=`
-- `SMTP_PASS=`
-- `EMAIL_FROM=no-reply@clothingbrand.local`
-- `WEBHOOK_URL=`
-- `WEBHOOK_SECRET=`
-- `WEBHOOK_TIMEOUT_MS=5000`
-
-**Run example**
+**Run with Docker**
+Images are built via GitHub Actions and pushed to Docker Hub. You can run them locally like this:
 ```bash
 docker run -d --name clothing-backend -p 4000:4000 \
   -e NODE_ENV=production \
@@ -50,33 +41,29 @@ docker run -d --name clothing-backend -p 4000:4000 \
   -e JWT_SECRET="change-me" \
   -e REFRESH_TOKEN_SECRET="change-me-too" \
   -e CORS_ORIGIN="http://localhost:8080" \
-  ${DOCKERHUB_USERNAME}/clothing-brand-backend:sha-<short>
+  salindadocker/clothing-brand-backend:v<run_number>
 ```
 
-### Frontend (SPA) Container
-
-The frontend image is built with a **build-time** API URL:
-
-**Build arg**
-- `VITE_API_URL` (default `http://localhost:4000`)
-
-**Run example**
 ```bash
 docker run -d --name clothing-frontend -p 8080:80 \
-  ${DOCKERHUB_USERNAME}/clothing-brand-frontend:sha-<short>
+  salindadocker/clothing-brand-frontend:v<run_number>
 ```
 
-To point the frontend at a different API, pass `VITE_API_URL` during build (the GitHub Action can use `VITE_API_URL` secret):
-```bash
-docker build -t clothing-brand-frontend:local \
-  --build-arg VITE_API_URL="https://api.example.com" \
-  ./frontend
-```
+**Image Tags**
+- `v<run_number>` on normal pushes (example: `v42`)
+- `vX.Y.Z` on tag pushes (`v*`)
 
-## GitHub Actions (CI/CD)
-The workflow builds and pushes Docker images **only when files inside** `backend/` or `frontend/` change, or on `v*` tags.
+For full Docker and environment details, see `backend/README.md` and `frontend/README.md`.
+salindadocker/clothing-brand-frontend
+salindadocker/clothing-brand-backend
+bothe images are avlible on public so check the tag and get lates one 
 
-**Required secrets**
-- `DOCKERHUB_USERNAME`
-- `DOCKERHUB_TOKEN`
-- `VITE_API_URL` (optional, used for frontend build)
+**Default Seed Credentials**
+- Admin: `admin@clothingbrand.local` / `Admin123!`
+- User: `user@clothingbrand.local` / `User123!`
+
+**Submission Expectations**
+- This README includes setup steps for local run and Docker images.
+- Repo is ready to share as a link or ZIP.
+- Credentials and required config are listed above and in each service README.
+- Known gap (not implemented): direct image upload for products. The admin currently provides an image URL. Planned approach: upload to storage (e.g., S3/Cloudinary) from the frontend, then store the returned URL.
