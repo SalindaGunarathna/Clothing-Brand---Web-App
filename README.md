@@ -1,6 +1,7 @@
 # Clothing Brand Web App
 
 Full-stack e-commerce app for a clothing brand. The repo contains a Node.js + Express API and a Vite + React SPA.
+The latest changes are in the [dev branch](https://github.com/SalindaGunarathna/Clothing-Brand---Web-App/tree/dev).
 
 **Repository Structure**
 - `backend/` API (Express + MongoDB)
