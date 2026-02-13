@@ -9,8 +9,13 @@ const connectDB = async () => {
 
   mongoose.set('strictQuery', true);
 
+  const autoIndex =
+    process.env.MONGO_AUTO_INDEX !== undefined
+      ? String(process.env.MONGO_AUTO_INDEX).toLowerCase() === 'true'
+      : process.env.NODE_ENV !== 'production';
+
   await mongoose.connect(uri, {
-    autoIndex: process.env.NODE_ENV !== 'production'
+    autoIndex
   });
 
   logger.info('INFO MongoDB connected');

@@ -50,6 +50,9 @@ Optional:
 - `RESET_PASSWORD_EXPIRES_IN=1h`
 - `BCRYPT_SALT_ROUNDS=12`
 - `MONGO_USE_TRANSACTIONS=true`
+- `MONGO_AUTO_INDEX=true`
+- `TRUST_PROXY=false`
+- `SEED_ON_START=true`
 - `SMTP_HOST=`
 - `SMTP_PORT=587`
 - `SMTP_SECURE=false`
@@ -112,3 +115,4 @@ docker run -d --name clothing-backend -p 4000:4000 \
 - If SMTP is not configured in non-production, emails fall back to Ethereal.
 - Admin role is required for admin endpoints.
 - Routes, controllers, services, and validators are separated to keep the codebase extensible.
+- Seeding runs by default in non-production; in production it runs only when `SEED_ON_START=true`.

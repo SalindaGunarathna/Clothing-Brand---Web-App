@@ -5,6 +5,9 @@ const products = require('../data/products');
 const logger = require('../config/logger');
 
 const normalizeEmail = (value) => value.trim().toLowerCase();
+const isProduction = process.env.NODE_ENV === 'production';
+const DEFAULT_ADMIN_PASSWORD = 'Admin123!';
+const DEFAULT_USER_PASSWORD = 'User123!';
 
 const seedUsersIfMissing = async () => {
   const adminEmail = normalizeEmail(
@@ -63,9 +66,28 @@ const seedProductsIfEmpty = async () => {
 };
 
 const seedInitialData = async () => {
-  if (process.env.SEED_ON_START === 'false') {
+  const seedOnStart = process.env.SEED_ON_START;
+
+  if (seedOnStart === 'false') {
     logger.info('INFO Seed on start disabled');
     return;
+  }
+
+  if (isProduction && seedOnStart !== 'true') {
+    logger.info('INFO Seed on start disabled in production');
+    return;
+  }
+
+  if (isProduction && seedOnStart === 'true') {
+    const adminPassword =
+      process.env.SEED_ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD;
+    const userPassword = process.env.SEED_USER_PASSWORD || DEFAULT_USER_PASSWORD;
+    if (
+      adminPassword === DEFAULT_ADMIN_PASSWORD ||
+      userPassword === DEFAULT_USER_PASSWORD
+    ) {
+      throw new Error('Seed passwords must be set in production');
+    }
   }
 
   await seedUsersIfMissing();

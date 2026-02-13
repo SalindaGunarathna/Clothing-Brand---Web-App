@@ -12,7 +12,13 @@ const orderRoutes = require('./routes/order.routes');
 
 const app = express();
 
-app.set('trust proxy', 1);
+const parseBoolean = (value) =>
+  ['1', 'true', 'yes', 'on'].includes(String(value).toLowerCase());
+const trustProxyValue = process.env.TRUST_PROXY;
+const trustProxy =
+  trustProxyValue === undefined ? false : parseBoolean(trustProxyValue) ? 1 : 0;
+
+app.set('trust proxy', trustProxy);
 app.use(helmet());
 app.use(express.json({ limit: '10kb' }));
 app.use(
@@ -62,12 +68,15 @@ const allowedOrigins = (process.env.CORS_ORIGIN || '')
   .map((s) => s.trim())
   .filter(Boolean);
 
+const allowAllOrigins = allowedOrigins.length === 0;
+if (allowAllOrigins && process.env.NODE_ENV === 'production') {
+  logger.warn('WARN CORS_ORIGIN not set; allowing all origins');
+}
+
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.length === 0) {
-      return callback(null, process.env.NODE_ENV !== 'production');
-    }
+    if (allowAllOrigins) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
   },

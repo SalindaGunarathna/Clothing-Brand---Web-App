@@ -21,7 +21,14 @@ const errorHandler = (err, req, res, next) => {
 
   if (err.code === 11000) {
     status = 409;
-    message = 'Email already registered';
+    const fields = Object.keys(err.keyPattern || err.keyValue || {});
+    if (fields.includes('email')) {
+      message = 'Email already registered';
+    } else if (fields.length > 0) {
+      message = `Duplicate value for ${fields.join(', ')}`;
+    } else {
+      message = 'Duplicate key error';
+    }
   }
 
   if (err.name === 'ValidationError') {
